@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전자칠판 시계 타이머</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --accent-color: #3b82f6;
+            --danger-color: #ef4444;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1f2937;
+                --text-color: #f3f4f6;
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Pretendard', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .panel { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid #e5e7eb33; }
+        
+        .clock-time { font-size: 6rem; font-weight: 800; }
+        .clock-date { font-size: 2rem; margin-top: 1rem; opacity: 0.8; }
+
+        .timer-display { font-size: 8rem; font-weight: 900; transition: color 0.3s; }
+        .timer-display.blink { animation: blink 1s infinite; color: var(--danger-color); }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .controls { margin-top: 2rem; display: flex; gap: 1rem; }
+        button {
+            padding: 1rem 2rem; font-size: 1.5rem; cursor: pointer;
+            border: none; border-radius: 0.5rem; background: var(--accent-color); color: white;
+        }
+
+        .input-group { margin-bottom: 1rem; }
+        input { font-size: 1.5rem; width: 80px; padding: 0.5rem; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="panel">
+        <div id="time" class="clock-time">00:00:00</div>
+        <div id="date" class="clock-date">2026-06-24 수요일</div>
+    </div>
+
+    <div class="panel">
+        <div id="timer" class="timer-display">00:00</div>
+        <div class="controls">
+            <input type="number" id="min" placeholder="분" value="0">
+            <input type="number" id="sec" placeholder="초" value="30">
+            <button onclick="startTimer()">시작</button>
+            <button onclick="resetTimer()" style="background: #6b7280;">초기화</button>
+        </div>
+    </div>
+
+    <script>
+        // 현재 시간 업데이트
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('time').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('date').innerText = 
+                `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()} ${days[now.getDay()]}요일`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 타이머 로직
+        let timerInterval;
+        let timeLeft = 0;
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = parseInt(document.getElementById('min').value) * 60 + parseInt(document.getElementById('sec').value);
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 10 && timeLeft > 0) {
+                    document.getElementById('timer').classList.add('blink');
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timer').classList.remove('blink');
+                    playAlarm();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            document.getElementById('timer').innerText = 
+                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 0;
+            document.getElementById('timer').innerText = "00:00";
+            document.getElementById('timer').classList.remove('blink');
+        }
+
+        function playAlarm() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+            oscillator.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 2);
+        }
+    </script>
+</body>
+</html>
